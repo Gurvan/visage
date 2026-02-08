@@ -184,6 +184,18 @@ TEST_CASE("Canvas advanced shapes", "[graphics]") {
     REQUIRE_NOTHROW(canvas.diamond(75, 75, 50, 5));
     REQUIRE_NOTHROW(canvas.diamond(125, 125, 40, 1));
   }
+
+  SECTION("Diamond box shadows") {
+    canvas.setColor(0x66ffffff);
+    Canvas::BoxShadow shadow;
+    shadow.offset_x = 6.0f;
+    shadow.offset_y = 8.0f;
+    shadow.blur = 4.0f;
+    shadow.spread = 2.0f;
+    REQUIRE_NOTHROW(canvas.diamondBoxShadow(30, 30, 70, 8, shadow));
+    shadow.inset = true;
+    REQUIRE_NOTHROW(canvas.diamondBoxShadow(100, 80, 70, 8, shadow));
+  }
 }
 
 TEST_CASE("Canvas borders and strokes", "[graphics]") {
@@ -653,6 +665,57 @@ TEST_CASE("Canvas advanced shape validation", "[graphics]") {
     const Screenshot& screenshot = canvas.takeScreenshot();
 
     Color top_left_inside = screenshot.sample(68, 78);
+    REQUIRE(top_left_inside.hexRed() > 0x00);
+
+    Color center_inside = screenshot.sample(100, 100);
+    REQUIRE(center_inside.hexRed() < 0x10);
+  }
+
+  SECTION("Diamond outer box shadow validation") {
+    Canvas canvas;
+    canvas.setWindowless(kTestWidth, kTestHeight);
+
+    canvas.setColor(0xff000000);
+    canvas.fill(0, 0, canvas.width(), canvas.height());
+
+    canvas.setColor(0x99ff0000);
+    Canvas::BoxShadow shadow;
+    shadow.offset_x = 8.0f;
+    shadow.offset_y = 8.0f;
+    shadow.blur = 4.0f;
+    shadow.spread = 2.0f;
+    canvas.diamondBoxShadow(65, 65, 70, 8, shadow);
+
+    canvas.submit();
+    const Screenshot& screenshot = canvas.takeScreenshot();
+
+    Color inside = screenshot.sample(100, 100);
+    REQUIRE(inside.hexRed() == 0x00);
+
+    Color shadow_sample = screenshot.sample(142, 142);
+    REQUIRE(shadow_sample.hexRed() > 0x00);
+  }
+
+  SECTION("Diamond inner box shadow validation") {
+    Canvas canvas;
+    canvas.setWindowless(kTestWidth, kTestHeight);
+
+    canvas.setColor(0xff000000);
+    canvas.fill(0, 0, canvas.width(), canvas.height());
+
+    canvas.setColor(0x99ffffff);
+    Canvas::BoxShadow shadow;
+    shadow.inset = true;
+    shadow.offset_x = 8.0f;
+    shadow.offset_y = 8.0f;
+    shadow.blur = 4.0f;
+    shadow.spread = 2.0f;
+    canvas.diamondBoxShadow(65, 65, 70, 8, shadow);
+
+    canvas.submit();
+    const Screenshot& screenshot = canvas.takeScreenshot();
+
+    Color top_left_inside = screenshot.sample(88, 88);
     REQUIRE(top_left_inside.hexRed() > 0x00);
 
     Color center_inside = screenshot.sample(100, 100);
