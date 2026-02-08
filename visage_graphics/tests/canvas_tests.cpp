@@ -98,6 +98,20 @@ TEST_CASE("Canvas basic shapes", "[graphics]") {
     REQUIRE_NOTHROW(canvas.circle(150, 150, 5));
   }
 
+  SECTION("Circle box shadows") {
+    canvas.setColor(0x66ffffff);
+    Canvas::BoxShadow outer;
+    outer.offset_x = 6.0f;
+    outer.offset_y = 8.0f;
+    outer.blur = 4.0f;
+    outer.spread = 2.0f;
+    REQUIRE_NOTHROW(canvas.circleBoxShadow(20, 20, 64, outer));
+
+    Canvas::BoxShadow inset = outer;
+    inset.inset = true;
+    REQUIRE_NOTHROW(canvas.circleBoxShadow(100, 40, 64, inset));
+  }
+
   SECTION("Fill operations") {
     canvas.setColor(0xff0000ff);
     REQUIRE_NOTHROW(canvas.fill(0, 0, 200, 200));
@@ -286,6 +300,57 @@ TEST_CASE("Canvas visual validation", "[graphics]") {
     REQUIRE(outside.hexGreen() == 0x00);
     REQUIRE(outside.hexRed() == 0x00);
     REQUIRE(outside.hexBlue() == 0x00);
+  }
+
+  SECTION("Circle outer box shadow validation") {
+    Canvas canvas;
+    canvas.setWindowless(kTestWidth, kTestHeight);
+
+    canvas.setColor(0xff000000);
+    canvas.fill(0, 0, canvas.width(), canvas.height());
+
+    canvas.setColor(0x99ff0000);
+    Canvas::BoxShadow shadow;
+    shadow.offset_x = 8.0f;
+    shadow.offset_y = 8.0f;
+    shadow.blur = 4.0f;
+    shadow.spread = 2.0f;
+    canvas.circleBoxShadow(68, 68, 64, shadow);
+
+    canvas.submit();
+    const Screenshot& screenshot = canvas.takeScreenshot();
+
+    Color inside = screenshot.sample(100, 100);
+    REQUIRE(inside.hexRed() == 0x00);
+
+    Color shadow_sample = screenshot.sample(136, 136);
+    REQUIRE(shadow_sample.hexRed() > 0x00);
+  }
+
+  SECTION("Circle inner box shadow validation") {
+    Canvas canvas;
+    canvas.setWindowless(kTestWidth, kTestHeight);
+
+    canvas.setColor(0xff000000);
+    canvas.fill(0, 0, canvas.width(), canvas.height());
+
+    canvas.setColor(0x99ffffff);
+    Canvas::BoxShadow shadow;
+    shadow.inset = true;
+    shadow.offset_x = 8.0f;
+    shadow.offset_y = 8.0f;
+    shadow.blur = 4.0f;
+    shadow.spread = 2.0f;
+    canvas.circleBoxShadow(68, 68, 64, shadow);
+
+    canvas.submit();
+    const Screenshot& screenshot = canvas.takeScreenshot();
+
+    Color top_left_inside = screenshot.sample(78, 78);
+    REQUIRE(top_left_inside.hexRed() > 0x00);
+
+    Color center = screenshot.sample(100, 100);
+    REQUIRE(center.hexRed() < 0x10);
   }
 
   SECTION("Fill operation validation") {

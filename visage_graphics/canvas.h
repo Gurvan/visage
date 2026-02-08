@@ -151,6 +151,11 @@ namespace visage {
                       pixels(width)));
     }
 
+    template<typename T1, typename T2, typename T3>
+    void circleBoxShadow(const T1& x, const T2& y, const T3& width, const BoxShadow& shadow) {
+      addCircleBoxShadow(pixels(x), pixels(y), pixels(width), shadow);
+    }
+
     template<typename T1, typename T2, typename T3, typename T4>
     void fadeCircle(const T1& x, const T2& y, const T3& width, const T4& pixel_width) {
       Circle circle(state_.clamp, state_.brush, state_.x + pixels(x), state_.y + pixels(y), pixels(width));
@@ -721,6 +726,31 @@ namespace visage {
                                          state_.y + shadow_y, shadow_width, shadow_height, width,
                                          height, rounding, blur, spread, offset_x, offset_y,
                                          shadow.inset));
+    }
+
+    void addCircleBoxShadow(float x, float y, float width, const BoxShadow& shadow) {
+      if (width <= 0.0f)
+        return;
+
+      float offset_x = pixels(shadow.offset_x);
+      float offset_y = pixels(shadow.offset_y);
+      float blur = std::max(0.0f, pixels(shadow.blur));
+      float spread = pixels(shadow.spread);
+
+      float shadow_x = x;
+      float shadow_y = y;
+      float shadow_width = width;
+      if (!shadow.inset) {
+        float max_offset = std::max(std::abs(offset_x), std::abs(offset_y));
+        float padding = std::max(0.0f, spread) + blur * kShadowSigmaCoverage + max_offset + 1.0f;
+        shadow_x -= padding;
+        shadow_y -= padding;
+        shadow_width += 2.0f * padding;
+      }
+
+      addShape(CircleBoxShadow(state_.clamp, state_.brush, state_.x + shadow_x, state_.y + shadow_y,
+                               shadow_width, shadow_width, width, blur, spread, offset_x, offset_y,
+                               shadow.inset));
     }
 
     void addRoundedRectangleBorder(float x, float y, float width, float height, float rounding,
