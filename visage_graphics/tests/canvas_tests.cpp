@@ -162,6 +162,18 @@ TEST_CASE("Canvas advanced shapes", "[graphics]") {
     REQUIRE_NOTHROW(canvas.roundedArcBoxShadow(110, 20, 80, 10, 0.0f, 0.8f * kPi, shadow));
   }
 
+  SECTION("Flat arc box shadows") {
+    canvas.setColor(0x66ffffff);
+    Canvas::BoxShadow shadow;
+    shadow.offset_x = 6.0f;
+    shadow.offset_y = 6.0f;
+    shadow.blur = 4.0f;
+    shadow.spread = 2.0f;
+    REQUIRE_NOTHROW(canvas.flatArcBoxShadow(20, 20, 80, 10, 0.0f, 0.8f * kPi, shadow));
+    shadow.inset = true;
+    REQUIRE_NOTHROW(canvas.flatArcBoxShadow(110, 20, 80, 10, 0.0f, 0.8f * kPi, shadow));
+  }
+
   SECTION("Triangle drawing") {
     canvas.setColor(0xffffff00);
     REQUIRE_NOTHROW(canvas.triangle(50, 20, 80, 70, 20, 70));
@@ -774,6 +786,57 @@ TEST_CASE("Canvas advanced shape validation", "[graphics]") {
     shadow.blur = 4.0f;
     shadow.spread = 2.0f;
     canvas.roundedArcBoxShadow(60, 60, 80, 12, 0.0f, 0.9f * kPi, shadow);
+
+    canvas.submit();
+    const Screenshot& screenshot = canvas.takeScreenshot();
+
+    Color interior_arc = screenshot.sample(102, 129);
+    REQUIRE(interior_arc.hexRed() > 0x00);
+
+    Color center = screenshot.sample(100, 100);
+    REQUIRE(center.hexRed() == 0x00);
+  }
+
+  SECTION("Flat arc outer box shadow validation") {
+    Canvas canvas;
+    canvas.setWindowless(kTestWidth, kTestHeight);
+
+    canvas.setColor(0xff000000);
+    canvas.fill(0, 0, canvas.width(), canvas.height());
+
+    canvas.setColor(0x99ff0000);
+    Canvas::BoxShadow shadow;
+    shadow.offset_x = 6.0f;
+    shadow.offset_y = 8.0f;
+    shadow.blur = 4.0f;
+    shadow.spread = 2.0f;
+    canvas.flatArcBoxShadow(60, 60, 80, 12, 0.0f, 0.9f * kPi, shadow);
+
+    canvas.submit();
+    const Screenshot& screenshot = canvas.takeScreenshot();
+
+    Color center = screenshot.sample(100, 100);
+    REQUIRE(center.hexRed() == 0x00);
+
+    Color shadow_sample = screenshot.sample(142, 120);
+    REQUIRE(shadow_sample.hexRed() > 0x00);
+  }
+
+  SECTION("Flat arc inner box shadow validation") {
+    Canvas canvas;
+    canvas.setWindowless(kTestWidth, kTestHeight);
+
+    canvas.setColor(0xff000000);
+    canvas.fill(0, 0, canvas.width(), canvas.height());
+
+    canvas.setColor(0x99ffffff);
+    Canvas::BoxShadow shadow;
+    shadow.inset = true;
+    shadow.offset_x = 6.0f;
+    shadow.offset_y = 8.0f;
+    shadow.blur = 4.0f;
+    shadow.spread = 2.0f;
+    canvas.flatArcBoxShadow(60, 60, 80, 12, 0.0f, 0.9f * kPi, shadow);
 
     canvas.submit();
     const Screenshot& screenshot = canvas.takeScreenshot();
