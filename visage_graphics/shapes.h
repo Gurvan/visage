@@ -229,6 +229,42 @@ namespace visage {
     float rounding = 0.0f;
   };
 
+  struct RoundedRectangleBoxShadow : Primitive<ComplexShapeVertex> {
+    VISAGE_CREATE_BATCH_ID
+    static const EmbeddedFile& vertexShader();
+    static const EmbeddedFile& fragmentShader();
+
+    RoundedRectangleBoxShadow(const ClampBounds& clamp, const PackedBrush* brush, float x, float y,
+                              float width, float height, float base_width, float base_height,
+                              float rounding, float blur, float spread, float offset_x,
+                              float offset_y, bool inset) :
+        Primitive(batchId(), clamp, brush, x, y, width, height), base_width(base_width),
+        base_height(base_height), rounding(rounding), blur(blur), spread(spread), inset(inset) {
+      this->thickness = offset_x;
+      this->pixel_width = offset_y;
+    }
+
+    void setVertexData(Vertex* vertices) const {
+      setPrimitiveData(vertices);
+      float inset_value = inset ? 1.0f : 0.0f;
+      for (int v = 0; v < kVerticesPerQuad; ++v) {
+        vertices[v].value1 = rounding;
+        vertices[v].value2 = blur;
+        vertices[v].value3 = spread;
+        vertices[v].value4 = inset_value;
+        vertices[v].value5 = base_width;
+        vertices[v].value6 = base_height;
+      }
+    }
+
+    float base_width = 0.0f;
+    float base_height = 0.0f;
+    float rounding = 0.0f;
+    float blur = 0.0f;
+    float spread = 0.0f;
+    bool inset = false;
+  };
+
   struct Circle : Primitive<> {
     VISAGE_CREATE_BATCH_ID
     static const EmbeddedFile& vertexShader();

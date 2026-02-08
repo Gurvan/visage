@@ -117,6 +117,25 @@ TEST_CASE("Canvas advanced shapes", "[graphics]") {
     REQUIRE_NOTHROW(canvas.roundedRectangle(100, 100, 50, 30, 1));
   }
 
+  SECTION("Rounded rectangle box shadows") {
+    canvas.setColor(0x66ffffff);
+    Canvas::BoxShadow outer;
+    outer.offset_x = 8.0f;
+    outer.offset_y = 6.0f;
+    outer.blur = 4.0f;
+    outer.spread = 2.0f;
+    REQUIRE_NOTHROW(canvas.roundedRectangleBoxShadow(10, 10, 100, 50, 12, outer));
+
+    Canvas::BoxShadow inset;
+    inset.inset = true;
+    inset.offset_x = 4.0f;
+    inset.offset_y = 4.0f;
+    inset.blur = 3.0f;
+    inset.spread = 1.0f;
+    REQUIRE_NOTHROW(canvas.roundedRectangleBoxShadow(20, 80, 100, 60, 10, inset));
+    REQUIRE_NOTHROW(canvas.rectangleBoxShadow(20, 150, 80, 30, outer));
+  }
+
   SECTION("Triangle drawing") {
     canvas.setColor(0xffffff00);
     REQUIRE_NOTHROW(canvas.triangle(50, 20, 80, 70, 20, 70));
@@ -448,6 +467,67 @@ TEST_CASE("Canvas advanced shape validation", "[graphics]") {
     REQUIRE(off_line.hexRed() == 0x00);
     REQUIRE(off_line.hexGreen() == 0x00);
     REQUIRE(off_line.hexBlue() == 0x00);
+  }
+
+  SECTION("Rounded rectangle outer box shadow validation") {
+    Canvas canvas;
+    canvas.setWindowless(kTestWidth, kTestHeight);
+
+    canvas.setColor(0xff000000);
+    canvas.fill(0, 0, canvas.width(), canvas.height());
+
+    canvas.setColor(0x99ff0000);
+    Canvas::BoxShadow shadow;
+    shadow.offset_x = 8.0f;
+    shadow.offset_y = 6.0f;
+    shadow.blur = 4.0f;
+    shadow.spread = 3.0f;
+    canvas.roundedRectangleBoxShadow(60, 60, 80, 60, 10, shadow);
+
+    canvas.submit();
+    const Screenshot& screenshot = canvas.takeScreenshot();
+
+    Color inside = screenshot.sample(100, 90);
+    REQUIRE(inside.hexRed() == 0x00);
+
+    Color shadow_sample = screenshot.sample(148, 122);
+    REQUIRE(shadow_sample.hexRed() > 0x00);
+
+    Color outside = screenshot.sample(20, 20);
+    REQUIRE(outside.hexRed() == 0x00);
+    REQUIRE(outside.hexGreen() == 0x00);
+    REQUIRE(outside.hexBlue() == 0x00);
+  }
+
+  SECTION("Rounded rectangle inner box shadow validation") {
+    Canvas canvas;
+    canvas.setWindowless(kTestWidth, kTestHeight);
+
+    canvas.setColor(0xff000000);
+    canvas.fill(0, 0, canvas.width(), canvas.height());
+
+    canvas.setColor(0x99ffffff);
+    Canvas::BoxShadow shadow;
+    shadow.inset = true;
+    shadow.offset_x = 8.0f;
+    shadow.offset_y = 6.0f;
+    shadow.blur = 4.0f;
+    shadow.spread = 2.0f;
+    canvas.roundedRectangleBoxShadow(60, 60, 80, 60, 10, shadow);
+
+    canvas.submit();
+    const Screenshot& screenshot = canvas.takeScreenshot();
+
+    Color top_left_inside = screenshot.sample(66, 66);
+    REQUIRE(top_left_inside.hexRed() > 0x00);
+
+    Color center_inside = screenshot.sample(100, 90);
+    REQUIRE(center_inside.hexRed() < 0x10);
+
+    Color outside = screenshot.sample(50, 50);
+    REQUIRE(outside.hexRed() == 0x00);
+    REQUIRE(outside.hexGreen() == 0x00);
+    REQUIRE(outside.hexBlue() == 0x00);
   }
 }
 

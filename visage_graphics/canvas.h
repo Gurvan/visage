@@ -35,6 +35,8 @@
 #include "visage_utils/space.h"
 #include "visage_utils/time_utils.h"
 
+#include <algorithm>
+#include <cmath>
 #include <limits>
 
 namespace visage {
@@ -44,6 +46,7 @@ namespace visage {
   class Canvas {
   public:
     static constexpr float kDefaultSquirclePower = 4.0f;
+    static constexpr float kShadowSigmaCoverage = 3.0f;
 
     static bool swapChainSupported();
 
@@ -57,6 +60,14 @@ namespace visage {
       ClampBounds clamp;
       BlendMode blend_mode = BlendMode::Alpha;
       Region* current_region = nullptr;
+    };
+
+    struct BoxShadow {
+      float offset_x = 0.0f;
+      float offset_y = 0.0f;
+      float blur = 0.0f;  // Gaussian sigma in pixels.
+      float spread = 0.0f;
+      bool inset = false;
     };
 
     Canvas();
@@ -300,6 +311,19 @@ namespace visage {
                                 state_.y + pixels(y) - 0.5f * pixel_width,
                                 pixels(width) + pixel_width, pixels(height) + pixel_width,
                                 std::max(1.0f, pixels(rounding) + 0.5f * pixel_width), pixel_width));
+    }
+
+    template<typename T1, typename T2, typename T3, typename T4>
+    void rectangleBoxShadow(const T1& x, const T2& y, const T3& width, const T4& height,
+                            const BoxShadow& shadow) {
+      addRoundedRectangleBoxShadow(pixels(x), pixels(y), pixels(width), pixels(height), 0.0f, shadow);
+    }
+
+    template<typename T1, typename T2, typename T3, typename T4, typename T5>
+    void roundedRectangleBoxShadow(const T1& x, const T2& y, const T3& width, const T4& height,
+                                   const T5& rounding, const BoxShadow& shadow) {
+      addRoundedRectangleBoxShadow(pixels(x), pixels(y), pixels(width), pixels(height), pixels(rounding),
+                                   shadow);
     }
 
     template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
@@ -664,6 +688,39 @@ namespace visage {
       float growth = rounding + 1.0f;
       addShape(RoundedRectangle(clamp, state_.brush, state_.x + x, state_.y + y - growth, width,
                                 height + growth, std::max(1.0f, rounding)));
+    }
+
+    void addRoundedRectangleBoxShadow(float x, float y, float width, float height, float rounding,
+                                      const BoxShadow& shadow) {
+      if (width <= 0.0f || height <= 0.0f)
+        return;
+
+      rounding = std::clamp(rounding, 0.0f, 0.5f * std::min(width, height));
+
+      float offset_x = pixels(shadow.offset_x);
+      float offset_y = pixels(shadow.offset_y);
+      float blur = std::max(0.0f, pixels(shadow.blur));
+      float spread = pixels(shadow.spread);
+
+      float shadow_x = x;
+      float shadow_y = y;
+      float shadow_width = width;
+      float shadow_height = height;
+      if (!shadow.inset) {
+        float padding = std::max(0.0f, spread) + blur * kShadowSigmaCoverage + 1.0f;
+        shadow_x += std::min(0.0f, offset_x) - padding;
+        shadow_y += std::min(0.0f, offset_y) - padding;
+        shadow_width += std::abs(offset_x) + 2.0f * padding;
+        shadow_height += std::abs(offset_y) + 2.0f * padding;
+      }
+
+      if (shadow_width <= 0.0f || shadow_height <= 0.0f)
+        return;
+
+      addShape(RoundedRectangleBoxShadow(state_.clamp, state_.brush, state_.x + shadow_x,
+                                         state_.y + shadow_y, shadow_width, shadow_height, width,
+                                         height, rounding, blur, spread, offset_x, offset_y,
+                                         shadow.inset));
     }
 
     void addRoundedRectangleBorder(float x, float y, float width, float height, float rounding,
