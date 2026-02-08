@@ -166,6 +166,19 @@ TEST_CASE("Canvas advanced shapes", "[graphics]") {
     REQUIRE_NOTHROW(canvas.squircle(150, 150, 20, 8.0f));
   }
 
+  SECTION("Squircle box shadows") {
+    canvas.setColor(0x66ffffff);
+    Canvas::BoxShadow shadow;
+    shadow.offset_x = 6.0f;
+    shadow.offset_y = 6.0f;
+    shadow.blur = 4.0f;
+    shadow.spread = 2.0f;
+    REQUIRE_NOTHROW(canvas.squircleBoxShadow(30, 30, 60, 4.0f, shadow));
+    REQUIRE_NOTHROW(canvas.superEllipseBoxShadow(110, 30, 70, 50, 4.0f, shadow));
+    shadow.inset = true;
+    REQUIRE_NOTHROW(canvas.superEllipseBoxShadow(70, 110, 80, 60, 4.0f, shadow));
+  }
+
   SECTION("Diamond drawing") {
     canvas.setColor(0xffaabbcc);
     REQUIRE_NOTHROW(canvas.diamond(75, 75, 50, 5));
@@ -593,6 +606,57 @@ TEST_CASE("Canvas advanced shape validation", "[graphics]") {
     REQUIRE(outside.hexRed() == 0x00);
     REQUIRE(outside.hexGreen() == 0x00);
     REQUIRE(outside.hexBlue() == 0x00);
+  }
+
+  SECTION("Squircle outer box shadow validation") {
+    Canvas canvas;
+    canvas.setWindowless(kTestWidth, kTestHeight);
+
+    canvas.setColor(0xff000000);
+    canvas.fill(0, 0, canvas.width(), canvas.height());
+
+    canvas.setColor(0x99ff0000);
+    Canvas::BoxShadow shadow;
+    shadow.offset_x = 8.0f;
+    shadow.offset_y = 6.0f;
+    shadow.blur = 4.0f;
+    shadow.spread = 2.0f;
+    canvas.superEllipseBoxShadow(60, 70, 80, 60, 4.0f, shadow);
+
+    canvas.submit();
+    const Screenshot& screenshot = canvas.takeScreenshot();
+
+    Color inside = screenshot.sample(100, 100);
+    REQUIRE(inside.hexRed() == 0x00);
+
+    Color shadow_sample = screenshot.sample(144, 126);
+    REQUIRE(shadow_sample.hexRed() > 0x00);
+  }
+
+  SECTION("Squircle inner box shadow validation") {
+    Canvas canvas;
+    canvas.setWindowless(kTestWidth, kTestHeight);
+
+    canvas.setColor(0xff000000);
+    canvas.fill(0, 0, canvas.width(), canvas.height());
+
+    canvas.setColor(0x99ffffff);
+    Canvas::BoxShadow shadow;
+    shadow.inset = true;
+    shadow.offset_x = 8.0f;
+    shadow.offset_y = 6.0f;
+    shadow.blur = 4.0f;
+    shadow.spread = 2.0f;
+    canvas.superEllipseBoxShadow(60, 70, 80, 60, 4.0f, shadow);
+
+    canvas.submit();
+    const Screenshot& screenshot = canvas.takeScreenshot();
+
+    Color top_left_inside = screenshot.sample(68, 78);
+    REQUIRE(top_left_inside.hexRed() > 0x00);
+
+    Color center_inside = screenshot.sample(100, 100);
+    REQUIRE(center_inside.hexRed() < 0x10);
   }
 }
 

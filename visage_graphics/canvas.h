@@ -176,6 +176,13 @@ namespace visage {
       addShape(Squircle(state_.clamp, state_.brush, state_.x + pixels(x), state_.y + pixels(y), w, w, power));
     }
 
+    template<typename T1, typename T2, typename T3>
+    void squircleBoxShadow(const T1& x, const T2& y, const T3& width, float power,
+                           const BoxShadow& shadow) {
+      float w = pixels(width);
+      addSquircleBoxShadow(pixels(x), pixels(y), w, w, power, shadow);
+    }
+
     template<typename T1, typename T2, typename T3, typename T4>
     void squircleBorder(const T1& x, const T2& y, const T3& width, float power, const T4& thickness) {
       float w = pixels(width);
@@ -188,6 +195,12 @@ namespace visage {
     void superEllipse(const T1& x, const T2& y, const T3& width, const T4& height, const T5& power) {
       addShape(Squircle(state_.clamp, state_.brush, state_.x + pixels(x), state_.y + pixels(y),
                         pixels(width), pixels(height), pixels(power)));
+    }
+
+    template<typename T1, typename T2, typename T3, typename T4, typename T5>
+    void superEllipseBoxShadow(const T1& x, const T2& y, const T3& width, const T4& height,
+                               const T5& power, const BoxShadow& shadow) {
+      addSquircleBoxShadow(pixels(x), pixels(y), pixels(width), pixels(height), pixels(power), shadow);
     }
 
     template<typename T1, typename T2, typename T3, typename T4>
@@ -751,6 +764,34 @@ namespace visage {
       addShape(CircleBoxShadow(state_.clamp, state_.brush, state_.x + shadow_x, state_.y + shadow_y,
                                shadow_width, shadow_width, width, blur, spread, offset_x, offset_y,
                                shadow.inset));
+    }
+
+    void addSquircleBoxShadow(float x, float y, float width, float height, float power,
+                              const BoxShadow& shadow) {
+      if (width <= 0.0f || height <= 0.0f)
+        return;
+
+      float offset_x = pixels(shadow.offset_x);
+      float offset_y = pixels(shadow.offset_y);
+      float blur = std::max(0.0f, pixels(shadow.blur));
+      float spread = pixels(shadow.spread);
+
+      float shadow_x = x;
+      float shadow_y = y;
+      float shadow_width = width;
+      float shadow_height = height;
+      if (!shadow.inset) {
+        float padding_x = std::max(0.0f, spread) + blur * kShadowSigmaCoverage + std::abs(offset_x) + 1.0f;
+        float padding_y = std::max(0.0f, spread) + blur * kShadowSigmaCoverage + std::abs(offset_y) + 1.0f;
+        shadow_x -= padding_x;
+        shadow_y -= padding_y;
+        shadow_width += 2.0f * padding_x;
+        shadow_height += 2.0f * padding_y;
+      }
+
+      addShape(SquircleBoxShadow(state_.clamp, state_.brush, state_.x + shadow_x, state_.y + shadow_y,
+                                 shadow_width, shadow_height, width, height, power, blur, spread,
+                                 offset_x, offset_y, shadow.inset));
     }
 
     void addRoundedRectangleBorder(float x, float y, float width, float height, float rounding,
